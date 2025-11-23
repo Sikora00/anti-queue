@@ -28,10 +28,44 @@ async function bootstrap() {
         durable: true,
     });
 
+    // --- Marketing Queue Setup (Per-Message TTL) ---
+
+    // 4. Assert Marketing Wait Queue (No fixed TTL)
+    await channel.assertQueue('marketing_queue_wait', {
+        durable: true,
+        deadLetterExchange: '',
+        deadLetterRoutingKey: 'marketing_queue', // Loop back to Main for retry
+    });
+
+    // 5. Assert Marketing Main Queue
+    await channel.assertQueue('marketing_queue', {
+        durable: true,
+        deadLetterExchange: '',
+        deadLetterRoutingKey: 'marketing_queue_wait',
+    });
+
+    // 4. Assert Reporting Exchange (Delayed Message) & Queue
+    const reportingExchange = 'reporting_exchange';
+    const reportingQueue = 'reporting_queue';
+
+    await channel.assertExchange(reportingExchange, 'x-delayed-message', {
+        durable: true,
+        arguments: { 'x-delayed-type': 'direct' }
+    });
+
+    await channel.assertQueue(reportingQueue, {
+        durable: true,
+    });
+
+    await channel.bindQueue(reportingQueue, reportingExchange, reportingQueue);
+
     await connection.close();
 
     // Create application without HTTP server
-    const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+    const app = await NestFactory.create(AppModule);
+
+    // 1. Email Service
+    app.connectMicroservice<MicroserviceOptions>({
         transport: Transport.RMQ,
         options: {
             urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
@@ -41,13 +75,41 @@ async function bootstrap() {
                 deadLetterExchange: '',
                 deadLetterRoutingKey: 'email_queue_wait',
             },
-            noAck: false, // Manual acknowledgment
+            noAck: false,
         },
     });
 
-    await app.listen();
+    // 2. Reporting Service
+    app.connectMicroservice<MicroserviceOptions>({
+        transport: Transport.RMQ,
+        options: {
+            urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
+            queue: 'reporting_queue',
+            queueOptions: {
+                durable: true,
+            },
+            noAck: false,
+        },
+    });
 
-    console.log('Worker Service is consuming from email_queue');
+    // 3. Marketing Service
+    app.connectMicroservice<MicroserviceOptions>({
+        transport: Transport.RMQ,
+        options: {
+            urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
+            queue: 'marketing_queue',
+            queueOptions: {
+                durable: true,
+                deadLetterExchange: '',
+                deadLetterRoutingKey: 'marketing_queue_wait',
+            },
+            noAck: false,
+        },
+    });
+
+    await app.startAllMicroservices();
+
+    console.log('Worker Service is consuming from email_queue and reporting_queue');
 }
 
 bootstrap();

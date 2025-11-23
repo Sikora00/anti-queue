@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres:
     image: postgres:14
@@ -12,7 +11,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   rabbitmq:
-    image: rabbitmq:3-management
+    build:
+      context: .
+      dockerfile: Dockerfile.rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest

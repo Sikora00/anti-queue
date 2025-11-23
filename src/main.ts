@@ -28,6 +28,22 @@ async function bootstrap() {
     durable: true,
   });
 
+  // --- Marketing Queue Setup (Per-Message TTL) ---
+
+  // 4. Assert Marketing Wait Queue (No fixed TTL)
+  await channel.assertQueue('marketing_queue_wait', {
+    durable: true,
+    deadLetterExchange: '',
+    deadLetterRoutingKey: 'marketing_queue', // Loop back to Main for retry
+  });
+
+  // 5. Assert Marketing Main Queue
+  await channel.assertQueue('marketing_queue', {
+    durable: true,
+    deadLetterExchange: '',
+    deadLetterRoutingKey: 'marketing_queue_wait',
+  });
+
   await connection.close();
 
   const app = await NestFactory.create(AppModule);
