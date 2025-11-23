@@ -1,98 +1,183 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Anti-Queue - Email Queue Processing System
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based email queue processing system with RabbitMQ, featuring separate API and worker services for independent scaling.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Architecture
 
-## Description
+This application is split into two independently scalable services:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **API Service** (`main-api.ts`) - HTTP server that receives email requests and publishes them to RabbitMQ
+- **Worker Service** (`main-worker.ts`) - Queue consumer that processes email messages from RabbitMQ
 
-## Project setup
+This separation allows you to:
+- Scale workers independently based on queue load
+- Deploy services separately
+- Run multiple worker instances for parallel processing
 
-```bash
-$ npm install
-```
+## Features
 
-## Compile and run the project
+- ✅ RabbitMQ message queue for async email processing
+- ✅ Delayed retry mechanism with exponential backoff
+- ✅ Dead-letter queue (DLQ) for failed messages
+- ✅ Circuit breaker pattern for fault tolerance
+- ✅ Queue monitoring and alerting
+- ✅ Independent service scaling
+
+## Prerequisites
+
+- Node.js 18+
+- Docker & Docker Compose (for running RabbitMQ and PostgreSQL)
+- PM2 (optional, for production deployment)
+
+## Installation
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+## Running the Application
+
+### Development Mode (Separate Terminals)
+
+**Terminal 1 - Start Infrastructure:**
+```bash
+docker-compose up postgres rabbitmq
+```
+
+**Terminal 2 - Start API Service:**
+```bash
+npm run start:api:dev
+```
+
+**Terminal 3 - Start Worker Service:**
+```bash
+npm run start:worker:dev
+```
+
+### Development Mode (Single Command with PM2)
 
 ```bash
-# unit tests
-$ npm run test
+# Build the application first
+npm run build
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Start both services with PM2
+npm run start:pm2:dev
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Production Mode with Docker Compose
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Start all services (API + 1 worker)
+docker-compose up
+
+# Scale workers independently
+docker-compose up --scale worker=5
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Production Mode with PM2
 
-## Resources
+```bash
+# Build the application
+npm run build
 
-Check out a few resources that may come in handy when working with NestJS:
+# Start with PM2 (1 API + 2 workers by default)
+npm run start:pm2
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Scale workers
+pm2 scale worker 5
 
-## Support
+# View status
+pm2 status
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# View logs
+pm2 logs
+```
 
-## Stay in touch
+## Available Scripts
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Development
+- `npm run start:api:dev` - Start API service in watch mode
+- `npm run start:worker:dev` - Start worker service in watch mode
+
+### Production
+- `npm run build` - Build the application
+- `npm run start:api` - Start API service
+- `npm run start:worker` - Start worker service
+- `npm run start:pm2` - Start both services with PM2
+- `npm run start:pm2:dev` - Start both services with PM2 in watch mode
+
+### Testing
+- `npm run test` - Run unit tests
+- `npm run test:e2e` - Run end-to-end tests
+- `npm run test:cov` - Run tests with coverage
+
+## API Endpoints
+
+### Send Email
+```bash
+POST http://localhost:3000/email/send
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+```
+
+## Queue Configuration
+
+The system uses three RabbitMQ queues:
+
+1. **email_queue** - Main queue for processing emails
+2. **email_queue_wait** - Delay queue for retries (5 second TTL)
+3. **email_queue_dlq** - Dead-letter queue for permanently failed messages
+
+Messages are retried up to 15 times with a 5-second delay between retries.
+
+## Scaling Workers
+
+### With Docker Compose
+```bash
+docker-compose up --scale worker=5
+```
+
+### With PM2
+```bash
+pm2 scale worker 5
+```
+
+### Manual (Multiple Processes)
+```bash
+# Terminal 1
+npm run start:worker
+
+# Terminal 2
+npm run start:worker
+
+# Terminal 3
+npm run start:worker
+```
+
+## Monitoring
+
+- RabbitMQ Management UI: http://localhost:15672 (guest/guest)
+- API Health: http://localhost:3000
+
+## Project Structure
+
+```
+src/
+├── main-api.ts           # API service entry point
+├── main-worker.ts        # Worker service entry point
+├── app.module.ts         # Main application module
+├── email/
+│   ├── email.controller.ts    # HTTP endpoint
+│   ├── email.processor.ts     # Queue consumer
+│   ├── email.module.ts        # Email module
+│   └── circuit-breaker.service.ts
+└── monitoring.service.ts
+```
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT
+

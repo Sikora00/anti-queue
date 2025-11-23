@@ -5,7 +5,7 @@ import * as amqp from 'amqplib';
 
 async function bootstrap() {
   // Assert queues before starting the app to ensure topology is correct
-  const connection = await amqp.connect('amqp://guest:guest@localhost:5672');
+  const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672');
   const channel = await connection.createChannel();
 
   // 1. Assert Wait Queue (Dead Letters back to Main Queue after TTL)
@@ -36,7 +36,7 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://guest:guest@localhost:5672'],
+      urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
       queue: 'email_queue',
       queueOptions: {
         durable: true,

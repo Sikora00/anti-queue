@@ -11,7 +11,7 @@ import { CircuitBreakerService } from './circuit-breaker.service';
         name: 'EMAIL_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://guest:guest@localhost:5672'],
+          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
           queue: 'email_queue',
           queueOptions: {
             durable: true,

@@ -10,7 +10,7 @@ import axios from 'axios';
 export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MonitoringService.name);
   private readonly RABBITMQ_API =
-    'http://guest:guest@localhost:15672/api/queues/%2F/email_queue_wait';
+    `${process.env.RABBITMQ_MANAGEMENT_URL || 'http://guest:guest@localhost:15672'}/api/queues/%2F/email_queue_wait`;
   private readonly THRESHOLD = 10; // Alert if more than 10 messages in queue
   private interval: any;
 

@@ -8,5 +8,6 @@
 3. Add a retry mechanism for failed operations
 4. Implement a dead-letter queue for messages that failed to process
 5. Add queue status monitoring and alerting when thresholds are exceeded
+6. Add random delay for retrying failed operations
 
 **Extension**: Implement the Circuit Breaker pattern to protect against system overload.

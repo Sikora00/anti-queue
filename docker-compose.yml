@@ -22,6 +22,33 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  api:
+    build: .
+    command: npm run start:api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_MANAGEMENT_URL: http://guest:guest@rabbitmq:15672
+      DATABASE_URL: postgresql://user:password@postgres:5432/anti_queue
+
+  worker:
+    build: .
+    command: npm run start:worker
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_MANAGEMENT_URL: http://guest:guest@rabbitmq:15672
+      DATABASE_URL: postgresql://user:password@postgres:5432/anti_queue
+    # Scale workers with: docker-compose up --scale worker=5
+
 volumes:
   postgres_data:
   rabbitmq_data:
